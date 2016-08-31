@@ -6,7 +6,6 @@ Created on Mon Aug 22 21:25:30 2016
 """
 import numpy as np
 from numpy import sin, cos, pi
-import pickle
 
 class Simulator():
     # pendulum constants    
@@ -29,9 +28,9 @@ class Simulator():
     P = 0.; # pendulum angle (in rads 0 = up)
     P_d = 0.; # angular speed
     
-    dt = 0.01
+    dt = 0.02
     
-    def __init__(self, dt = 0.02):
+    def __init__(self, dt = 0.01):
         self.dt = dt
 
     def restart(self, initial_state):
@@ -61,24 +60,23 @@ class Simulator():
                 cos(self.P)*sin(self.P)))/(self.Rm*self.r**2*(self.J*self.m + self.J*self.M +\
                 self.l**2*self.m**2 - self.l**2*self.m**2*cos(self.P)**2 + self.M*self.l**2*self.m));
 
-        self.X = self.X + self.X_d * self.dt
         self.X_d = self.X_d + X_dd * self.dt
+        self.X = self.X + self.X_d * self.dt
+        self.P_d = self.P_d + P_dd * self.dt        
         self.P = self.P + self.P_d * self.dt
-        self.P_d = self.P_d + P_dd * self.dt
         
         
     def getReward(self):
         if(np.abs(self.X) <= 0.15):
-            if(np.abs((self.P % (2*pi))) < 10*2*pi/(360)):
+            if(np.abs((self.P % (2*pi))) <= 12*2*pi/(360)):
                 if(np.abs(self.X) > 0.10):
-                    return -10
-                return 1
+                    return 1
+            return 0
         else:
-            return -100
-        return 0
+            return -1
     
     
     def stopSim(self):
-        if(np.abs(self.X) > 0.17):
+        if(np.abs(self.X) > 0.17 or np.abs(self.P) > pi/4):
             return True
         return False

@@ -1,18 +1,24 @@
 # -*- coding: utf-8 -*-
 """
+Created on Fri Aug 26 22:33:57 2016
+
+@author: fcaldas
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Mon Aug 22 22:25:22 2016
 
 @author: fcaldas
 """
 import numpy as np
 from numpy import pi, min, max
-import pickle
 
-class Qlearner:
+class SARSAlearner:
 
-    nActions = 14
-    actions = np.linspace(0,1,14)*2.-1
-    Q = np.random.rand(30, 40, 90, 60, nActions)/10
+    nActions = 20
+    actions = np.linspace(0,1,20)*2.-1
+    Q = np.zeros([20, 80, 180, 80, nActions])
     bin0 = []
     bin1 = []
     bin2 = []
@@ -20,14 +26,17 @@ class Qlearner:
     alpha = 0.2 # learning rate
     gamma = 0.9 # discount rate
     epsilon = 0.05
-    epsilon_decay_rate = 0.999 # for each simulation we multiply epsilon by this constant
+    epsilon_decay_rate = 0.99 # for each simulation we multiply epsilon by this constant
     lastS = []
     episode = 0
     
+    lastS = None
+    lastSp = None
+    
     def __init__(self):
         
-        self.suplim = np.array([0.17, 3, pi/4, pi*3]);
-        self.inflim = np.array([-0.17, -3, -pi/4, -pi*3])
+        self.suplim = np.array([0.17, 3, pi/2, pi*3]);
+        self.inflim = np.array([-0.17, -3, -pi/2, -pi*3])
         self.bin0 = np.linspace(self.inflim[0], self.suplim[0], num=self.Q.shape[0])
         self.bin1 = np.linspace(self.inflim[1], self.suplim[1], num=self.Q.shape[1])
         self.bin2 = np.linspace(self.inflim[2], self.suplim[2], num=self.Q.shape[2])
@@ -80,14 +89,19 @@ class Qlearner:
              # epsilon policy
             iargmax = np.random.randint(0, high=self.nActions);
         else:
-             # use greedy policy instead
-            iargmax = np.argmax(self.Q[S[0], S[1], S[2], S[3], :]);
+             # use greedy policy instead, solve ties randomly
+            iargmax = np.random.choice(np.where(self.Q[S[0], S[1], S[2], S[3], :] == np.max(self.Q[S[0], S[1], S[2], S[3], :]))[0])
   
         # in case this is not the first move do backtracking.
-        self.Q[lastS[0], lastS[1], lastS[2], lastS[3], lastS[4]] = \
-                    (1 - self.alpha) * self.Q[lastS[0], lastS[1], lastS[2], lastS[3], lastS[4]] +\
-                    self.alpha * (reward + self.gamma * (max(self.Q[S[0], S[1], S[2], S[3], :])));
-
+        if(self.lastS is not None):
+            lastS = self.lastS
+            self.Q[lastS[0], lastS[1], lastS[2], lastS[3], lastS[4]] = \
+                        (1 - self.alpha) * self.Q[lastS[0], lastS[1], lastS[2], lastS[3], lastS[4]] +\
+                        self.alpha * (reward + 
+                                      self.gamma * self.Q[S[0], S[1], S[2], S[3], iargmax]  
+                                  #    self.gamma**2 * max(self.Q[S[0], S[1], S[2], S[3], :])
+                        );
+        
         self.lastS = [S[0], S[1], S[2], S[3], iargmax]
         return self.actions[iargmax];        
     
